@@ -1,0 +1,39 @@
+# ===== Python cơ bản =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.pkl
+*.log
+
+# ===== Virtual env =====
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ===== IDE / Editor =====
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ===== Output Excel =====
+*_coowners.xlsx
+*.xlsx~
+*.xlsm
+*.csv
+*.ods
+~$*
+
+# ===== OS / Cache =====
+.DS_Store
+Thumbs.db
+
+# ===== Tkinter Cache / UI test =====
+*.tkinter.log
+*.bak
