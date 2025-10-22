@@ -1,4 +1,5 @@
 import re
+import unicodedata
 import sys
 import pandas as pd
 from pathlib import Path
@@ -22,6 +23,15 @@ def normalize_id(token: str) -> str:
     digits = re.sub(r'\D', '', token)
     # chấp nhận CMND 9 số & CCCD 12 số; nếu muốn chỉ 12 số thì đổi điều kiện dưới
     return digits if 9 <= len(digits) <= 12 else ''
+
+def vn_fold(s: str) -> str:
+    """Hạ chữ + bỏ dấu tiếng Việt để so khớp không phân biệt dấu."""
+    if not isinstance(s, str):
+        return ''
+    s = unicodedata.normalize('NFD', s)
+    s = ''.join(ch for ch in s if unicodedata.category(ch) != 'Mn')
+    s = s.replace('Đ', 'D').replace('đ', 'd')
+    return s.lower()
 
 def is_address_line(s: str) -> bool:
     return bool(re.search(r'^\s*địa\s*chỉ', s or '', flags=re.IGNORECASE))
@@ -113,9 +123,25 @@ def parse_person(text: str):
 
     # Ngày cấp
     issue_date = ''
-    m_issue = re.search(r'(?:cấp|cap)\s+ngày\s+' + RE_DATE, s, flags=re.IGNORECASE)
+
+    # 1) Thử khớp trực tiếp có dấu trước (nhanh nhất)
+    m_issue = re.search(
+        r'(?:(?:c[âa]p)\s+ng[aàá]y|ng[aàá]y\s+(?:c[âa]p))\s*:?\s*' + RE_DATE,
+        s, flags=re.IGNORECASE
+    )
     if m_issue:
         issue_date = m_issue.group(1)
+    else:
+        # 2) Dự phòng: bỏ dấu rồi tìm vị trí 'ngay cap' / 'cap ngay', sau đó lấy DATE phía sau
+        sfold = vn_fold(s)
+        m_pre = re.search(r'(?:ngay\s+cap|cap\s+ngay)\s*:?\s*', sfold)
+        if m_pre:
+            start_pos = m_pre.end()
+            # lấy date đầu tiên ở bản gốc, bắt đầu sau vị trí tìm được (an toàn với dấu câu/khoảng trắng lạ)
+            for m in re.finditer(RE_DATE, s):
+                if m.start() >= start_pos - 2:  # nới nhẹ vài ký tự do khác biệt dấu
+                    issue_date = m.group(1)
+                    break
 
     if not name or (not id_number and not birth_year and not dob):
         return None
